@@ -28,8 +28,8 @@ Config.Uniforms = {
     ['male'] = {
         outfitData = {
             ['t-shirt'] = { item = 15, texture = 0 },
-            ['torso2'] = { item = 345, texture = 0 },
-            ['arms'] = { item = 19, texture = 0 },
+            ['torso2'] = { item = 5, texture = 0 },
+            ['arms'] = { item = 5, texture = 0 },
             ['pants'] = { item = 3, texture = 7 },
             ['shoes'] = { item = 1, texture = 0 },
         }
@@ -72,7 +72,7 @@ Config.Locations = {
         }
     },
     ["freedom"] = {
-        coords = vector4(1740.88, 2476.57, 44.85, 299.49)
+        coords = vector4(1784.85, 2590.75, 44.8, 189.15)
     },
     ["outside"] = {
         coords = vector4(1848.13, 2586.05, 44.67, 269.5)
@@ -84,7 +84,7 @@ Config.Locations = {
         coords = vector4(1693.33, 2569.51, 44.55, 123.5)
     },
     ["shop"] = {
-        coords = vector4(1777.59, 2560.52, 44.62, 187.83)
+        coords = vector4(1778.38, 2589.54, 44.8, 177.15)
     },
     spawns = {
         [1] = {
