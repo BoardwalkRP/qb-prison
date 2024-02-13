@@ -8,11 +8,9 @@ RegisterNetEvent('prison:server:SetJailStatus', function(jailTime)
     if not Player then return end
     Player.Functions.SetMetaData('injail', jailTime)
     if jailTime > 0 then
-        if Player.PlayerData.job.name ~= 'unemployed' then
-            Player.Functions.SetJob('unemployed')
-            TriggerClientEvent('QBCore:Notify', src, Lang:t('info.lost_job'))
-        end
+        Player.Functions.SetMetaData('jailOutTime', os.time() + (jailTime * 60))
     else
+        Player.Functions.SetMetaData('jailOutTime', nil)
         GotItems[source] = nil
     end
 end)
@@ -120,6 +118,17 @@ RegisterNetEvent('prison:server:CheckChance', function()
     GotItems[src] = true
 end)
 
+RegisterNetEvent('prison:server:ReduceTime', function(reduction)
+    local QPlayer = QBCore.Functions.GetPlayer(source)
+    QPlayer.Functions.SetMetaData('jailOutTime', QPlayer.PlayerData.metadata.jailOutTime - reduction)
+end)
+
 QBCore.Functions.CreateCallback('prison:server:IsAlarmActive', function(_, cb)
     cb(AlarmActivated)
+end)
+
+QBCore.Functions.CreateCallback('prison:server:checkTime', function(source, cb)
+    local QPlayer = QBCore.Functions.GetPlayer(source)
+    local outTime = QPlayer.PlayerData.metadata.jailOutTime and QPlayer.PlayerData.metadata.jailOutTime or 0
+    cb(math.ceil((outTime - os.time()) / 60))
 end)

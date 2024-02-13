@@ -24,6 +24,12 @@ Config.Jobs = {
     ["electrician"] = "Electrician"
 }
 
+Config.JobTimeReduction = {
+    min = 2,
+    max = 5,
+    chance = 75,
+}
+
 Config.Uniforms = {
     ['male'] = {
         outfitData = {
@@ -72,7 +78,7 @@ Config.Locations = {
         }
     },
     ["freedom"] = {
-        coords = vector4(1784.85, 2590.75, 44.8, 189.15)
+        coords = vector4(1783.91, 2589.88, 44.8, 178.91)
     },
     ["outside"] = {
         coords = vector4(1848.13, 2586.05, 44.67, 269.5)
@@ -84,7 +90,7 @@ Config.Locations = {
         coords = vector4(1693.33, 2569.51, 44.55, 123.5)
     },
     ["shop"] = {
-        coords = vector4(1778.38, 2589.54, 44.8, 177.15)
+        coords = vector4(1779.4, 2591.33, 44.8, 179.09)
     },
     spawns = {
         [1] = {
