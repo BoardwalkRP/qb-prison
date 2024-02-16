@@ -1,6 +1,6 @@
 QBCore = exports['qb-core']:GetCoreObject() -- Used Globally
 CellsBlip, TimeBlip, ShopBlip = 0, 0, 0
-local insidecanteen, insidefreedom, canteen_ped, freedom_ped, inJail = false, false, 0, 0, false
+local insidecanteen, insidefreedom, canteen_ped, freedom_ped, reception_ped, visitation_ped = false, false, 0, 0, 0, 0
 local freedom, canteen
 
 -- Functions
@@ -167,6 +167,8 @@ local function onLoad()
 
 	if not DoesEntityExist(freedom_ped) then freedom_ped = spawnPed(Config.Locations["freedom"].coords) end
 	if not DoesEntityExist(canteen_ped) then canteen_ped = spawnPed(Config.Locations["shop"].coords) end
+	if not DoesEntityExist(reception_ped) then reception_ped = spawnPed(Config.Locations.visitation.enter.ped) end
+	if not DoesEntityExist(visitation_ped) then visitation_ped = spawnPed(Config.Locations.visitation.exit.ped) end
 
 	if not Config.UseTarget then return end
 
@@ -192,6 +194,37 @@ local function onLoad()
 				canInteract = function()
 					return LocalPlayer.state.inJail
 				end
+			}
+		},
+		distance = 2.5,
+	})
+
+	exports['qb-target']:AddTargetEntity(reception_ped, {
+		options = {
+			{
+				type = "client",
+				event = "prison:client:visitation:list",
+				icon = 'fas fa-clipboard',
+				label = 'Request visitation',
+			}
+		},
+		distance = 2.5,
+	})
+
+	exports['qb-target']:AddTargetEntity(visitation_ped, {
+		options = {
+			{
+				icon = 'fas fa-clipboard',
+				label = 'Leave',
+				action = function()
+					DoScreenFadeOut(500)
+					while not IsScreenFadedOut() do Wait(10) end
+					local plyPed = PlayerPedId()
+					---@diagnostic disable-next-line: missing-parameter, param-type-mismatch
+					SetEntityCoords(plyPed, Config.Locations.visitation.enter.coords.xyz, true, false, false, false)
+					SetEntityHeading(plyPed, Config.Locations.visitation.enter.coords.w)
+					DoScreenFadeIn(500)
+				end,
 			}
 		},
 		distance = 2.5,

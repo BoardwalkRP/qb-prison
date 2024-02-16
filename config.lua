@@ -92,6 +92,16 @@ Config.Locations = {
     ["shop"] = {
         coords = vector4(1779.4, 2591.33, 44.8, 179.09)
     },
+    visitation = {
+        enter = {
+            ped = vector4(1836.72, 2591.2, 44.95, 256.23),
+            coords = vector4(1838.33, 2586.14, 44.95, 261.25),
+        },
+        exit = {
+            ped = vector4(1781.18, 2612.91, 44.97, 19.64),
+            coords = vector4(1781.36, 2614.38, 44.97, 79.97),
+        },
+    },
     spawns = {
         [1] = {
             coords = vector4(1661.046, 2524.681, 45.564, 260.545)

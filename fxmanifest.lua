@@ -19,7 +19,8 @@ client_scripts {
     '@PolyZone/ComboZone.lua',
     'client/main.lua',
     'client/jobs.lua',
-    'client/prisonbreak.lua'
+    'client/prisonbreak.lua',
+    'client/visitation.lua',
 }
 
 server_script 'server/main.lua'

@@ -123,6 +123,20 @@ RegisterNetEvent('prison:server:ReduceTime', function(reduction)
     QPlayer.Functions.SetMetaData('jailOutTime', QPlayer.PlayerData.metadata.jailOutTime - reduction)
 end)
 
+RegisterNetEvent('prison:server:requestVisitation', function(args)
+    if not args.target then return end
+    local QPlayer = QBCore.Functions.GetPlayer(source)
+    TriggerClientEvent('prison:client:visitation:request', args.target, {
+        source = QPlayer.PlayerData.source,
+        name = QPlayer.PlayerData.charinfo?.firstname .. ' ' .. QPlayer.PlayerData.charinfo?.lastname,
+    })
+    TriggerClientEvent('QBCore:Notify', QPlayer.PlayerData.source, "Visitation requested. Please wait for a response.")
+end)
+
+RegisterNetEvent('prison:server:respondVisitation', function(visitor, accept)
+    TriggerClientEvent('prison:client:visitation:getResponse', visitor.source, accept)
+end)
+
 QBCore.Functions.CreateCallback('prison:server:IsAlarmActive', function(_, cb)
     cb(AlarmActivated)
 end)
@@ -131,4 +145,18 @@ QBCore.Functions.CreateCallback('prison:server:checkTime', function(source, cb)
     local QPlayer = QBCore.Functions.GetPlayer(source)
     local outTime = QPlayer.PlayerData.metadata.jailOutTime and QPlayer.PlayerData.metadata.jailOutTime or 0
     cb(math.ceil((outTime - os.time()) / 60))
+end)
+
+QBCore.Functions.CreateCallback('prison:server:getPrisoners', function(source, cb)
+    local players, prisoners = QBCore.Functions.GetPlayers(), {}
+    for i = 1, #players do
+        if Player(players[i]).state.inJail then
+            local QPlayer = QBCore.Functions.GetPlayer(players[i])
+            prisoners[#prisoners+1] = {
+                source = players[i],
+                name = QPlayer.PlayerData.charinfo?.firstname .. ' ' .. QPlayer.PlayerData.charinfo?.lastname,
+            }
+        end
+    end
+    cb(prisoners)
 end)
