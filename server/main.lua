@@ -1,18 +1,29 @@
 local QBCore = exports['qb-core']:GetCoreObject()
 local GotItems = {}
 local AlarmActivated = false
+local solitaryUsed = {}
 
-RegisterNetEvent('prison:server:SetJailStatus', function(jailTime)
+RegisterNetEvent('prison:server:SetJailStatus', function(jailTime, inSolitary)
     local src = source
     local Player = QBCore.Functions.GetPlayer(src)
     if not Player then return end
-    Player.Functions.SetMetaData('injail', jailTime)
+    local solitaryCell = 0
     if jailTime > 0 then
         Player.Functions.SetMetaData('jailOutTime', os.time() + (jailTime * 60))
+        if inSolitary then
+            for i = 1, #Config.Locations.solitary do
+                if not solitaryUsed[i] then
+                    solitaryCell = i
+                    solitaryUsed[i] = true
+                end
+            end
+        end
     else
         Player.Functions.SetMetaData('jailOutTime', nil)
         GotItems[source] = nil
     end
+    Player.Functions.SetMetaData('inSolitary', solitaryCell)
+    Player.Functions.SetMetaData('injail', jailTime)
 end)
 
 RegisterNetEvent('prison:server:SaveJailItems', function()
@@ -53,7 +64,7 @@ RegisterNetEvent('prison:server:SecurityLockdown', function()
     for _, v in pairs(QBCore.Functions.GetPlayers()) do
         local Player = QBCore.Functions.GetPlayer(v)
         if Player then
-            if Player.PlayerData.job.name == 'police' and Player.PlayerData.job.onduty then
+            if Player.PlayerData.job.type == 'leo' and Player.PlayerData.job.onduty then
                 TriggerClientEvent('prison:client:PrisonBreakAlert', v)
             end
         end
@@ -144,7 +155,7 @@ end)
 QBCore.Functions.CreateCallback('prison:server:checkTime', function(source, cb)
     local QPlayer = QBCore.Functions.GetPlayer(source)
     local outTime = QPlayer.PlayerData.metadata.jailOutTime and QPlayer.PlayerData.metadata.jailOutTime or 0
-    cb(math.ceil((outTime - os.time()) / 60))
+    cb(math.ceil((outTime - os.time()) / 60), QPlayer.PlayerData.metadata.inSolitary)
 end)
 
 QBCore.Functions.CreateCallback('prison:server:getPrisoners', function(source, cb)

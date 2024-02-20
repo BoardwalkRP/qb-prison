@@ -1,7 +1,7 @@
 QBCore = exports['qb-core']:GetCoreObject() -- Used Globally
 CellsBlip, TimeBlip, ShopBlip = 0, 0, 0
 local insidecanteen, insidefreedom, canteen_ped, freedom_ped, reception_ped, visitation_ped = false, false, 0, 0, 0, 0
-local freedom, canteen
+local freedom, canteen, prisonZone
 
 -- Functions
 
@@ -51,6 +51,17 @@ local function CreateCellsBlip()
 	EndTextCommandSetBlipName(ShopBlip)
 end
 
+local function removeBlips()
+	RemoveBlip(JobBlip)
+	RemoveBlip(CellsBlip)
+	RemoveBlip(TimeBlip)
+	RemoveBlip(ShopBlip)
+	TimeBlip = 0
+	ShopBlip = 0
+	CellsBlip = 0
+	JobBlip = 0
+end
+
 -- Add clothes to prisioner
 
 local function ApplyClothes()
@@ -72,7 +83,27 @@ local function ApplyClothes()
 	end
 end
 
-local function setIntoPrison()
+local function solitaryLoop()
+	CreateThread(function()
+		while LocalPlayer.state.inJail do
+			TriggerEvent('prison:client:Leave')
+			Wait(5 * 60 * 1000)
+		end
+	end)
+end
+
+local function disableControlsSolitary()
+	CreateThread(function()
+		while LocalPlayer.state.inJail do
+			DisableControlAction(1, 22, true)
+			SetPedCanRagdoll(PlayerPedId(), false)
+			Wait(1)
+		end
+	end)
+end
+
+local function setIntoPrison(solitary)
+	local plyPed = PlayerPedId()
 	TriggerEvent("chat:addMessage", {
 		color = { 3, 132, 252 },
 		multiline = true,
@@ -82,12 +113,17 @@ local function setIntoPrison()
 	while not IsScreenFadedOut() do
 		Wait(10)
 	end
-	local RandomStartPosition = Config.Locations.spawns[math.random(1, #Config.Locations.spawns)]
-	SetEntityCoords(PlayerPedId(), RandomStartPosition.coords.x, RandomStartPosition.coords.y, RandomStartPosition.coords.z - 0.9, 0, 0, 0, false)
-	SetEntityHeading(PlayerPedId(), RandomStartPosition.coords.w)
+	local RandomStartPosition = (solitary > 0) and Config.Locations.solitary[solitary] or
+		Config.Locations.spawns[math.random(1, #Config.Locations.spawns)]
+	SetEntityCoords(plyPed, RandomStartPosition.coords.x, RandomStartPosition.coords.y, RandomStartPosition.coords.z - 0.9, 0, 0, 0, false)
+	SetEntityHeading(plyPed, RandomStartPosition.coords.w)
 	Wait(500)
 
 	LocalPlayer.state:set('inJail', true, true)
+	if solitary > 0 then
+		solitaryLoop()
+		disableControlsSolitary()
+	end
 	local tempJobs = {}
 	local i = 1
 	for k in pairs(Config.Locations.jobs) do
@@ -102,10 +138,11 @@ local function setIntoPrison()
 	CreateCellsBlip()
 	Wait(2000)
 	DoScreenFadeIn(1000)
-	QBCore.Functions.Notify(Lang:t("error.do_some_work", { currentjob = Config.Jobs[CurrentJob] }), "error")
+	if solitary <= 0 then QBCore.Functions.Notify(Lang:t("error.do_some_work", { currentjob = Config.Jobs[CurrentJob] }), "error") end
 end
 
 local function setOutPrison()
+	local plyPed = PlayerPedId()
 	TriggerServerEvent("prison:server:SetJailStatus", 0)
 	TriggerServerEvent("prison:server:GiveJailItems")
 	TriggerEvent("chat:addMessage", {
@@ -127,12 +164,13 @@ local function setOutPrison()
 		Wait(10)
 	end
 	TriggerEvent('illenium-appearance:client:reloadSkin')
-	SetEntityCoords(PlayerPedId(), Config.Locations["outside"].coords.x, Config.Locations["outside"].coords.y, Config.Locations["outside"].coords.z, 0, 0, 0, false)
-	SetEntityHeading(PlayerPedId(), Config.Locations["outside"].coords.w)
+	SetEntityCoords(plyPed, Config.Locations["outside"].coords.x, Config.Locations["outside"].coords.y, Config.Locations["outside"].coords.z, 0, 0, 0, false)
+	SetEntityHeading(plyPed, Config.Locations["outside"].coords.w)
 
 	Wait(500)
 
 	DoScreenFadeIn(1000)
+	SetPedCanRagdoll(plyPed, true)
 end
 
 local function spawnPed(coords)
@@ -152,10 +190,12 @@ local function spawnPed(coords)
 end
 
 local function onLoad()
-	QBCore.Functions.TriggerCallback('prison:server:checkTime', function(time)
+	QBCore.Functions.TriggerCallback('prison:server:checkTime', function(time, solitary)
 		LocalPlayer.state:set('inJail', (time > 0), true)
 		if time > 0 then
-			setIntoPrison()
+			setIntoPrison(solitary)
+		elseif time <= 0 and solitary > 0 then
+			setOutPrison()
 		end
 	end)
 
@@ -169,6 +209,24 @@ local function onLoad()
 	if not DoesEntityExist(canteen_ped) then canteen_ped = spawnPed(Config.Locations["shop"].coords) end
 	if not DoesEntityExist(reception_ped) then reception_ped = spawnPed(Config.Locations.visitation.enter.ped) end
 	if not DoesEntityExist(visitation_ped) then visitation_ped = spawnPed(Config.Locations.visitation.exit.ped) end
+
+	prisonZone = PolyZone:Create(Config.PrisonZone, {
+		name = 'prison_border',
+	})
+
+	prisonZone:onPlayerInOut(function(isPointInside, point)
+		if not isPointInside and LocalPlayer.state.inJail then
+			removeBlips()
+			LocalPlayer.state:set('inJail', false, true)
+			TriggerServerEvent("prison:server:SecurityLockdown")
+			exports['ps-dispatch']:PrisonBreak()
+			TriggerServerEvent('prison:server:JailAlarm')
+            TriggerEvent("prison:client:PrisonBreakAlert")
+            TriggerServerEvent("prison:server:SetJailStatus", 0)
+            TriggerServerEvent("prison:server:GiveJailItems", true)
+            QBCore.Functions.Notify(Lang:t("error.escaped"), "error")
+		end
+	end)
 
 	if not Config.UseTarget then return end
 
@@ -231,6 +289,16 @@ local function onLoad()
 	})
 end
 
+local function ensureSolitary()
+	local solitaryCell = 0
+	while solitaryCell <= 0 do
+		Wait(500)
+		local PlayerData = QBCore.Functions.GetPlayerData()
+		solitaryCell = PlayerData.metadata.inSolitary
+	end
+	setIntoPrison(solitaryCell)
+end
+
 -- Events
 
 RegisterNetEvent('QBCore:Client:OnPlayerLoaded', function()
@@ -247,19 +315,26 @@ RegisterNetEvent('QBCore:Client:OnPlayerUnload', function()
 	LocalPlayer.state:set('inJail', false, true)
 	CurrentJob = nil
 	RemoveBlip(JobBlip)
+	prisonZone:destroy()
+	prisonZone = nil
 end)
 
-RegisterNetEvent('prison:client:Enter', function(time)
+RegisterNetEvent('prison:client:Enter', function(time, inSolitary)
 	local invokingResource = GetInvokingResource()
 	if invokingResource and invokingResource ~= 'qb-policejob' and invokingResource ~= 'qb-ambulancejob' and invokingResource ~= GetCurrentResourceName() then
 		-- Use QBCore.Debug here for a quick and easy way to print to the console to grab your attention with this message
 		QBCore.Debug({ ('Player with source %s tried to execute prison:client:Enter manually or from another resource which is not authorized to call this, invokedResource: %s'):format(GetPlayerServerId(PlayerId()), invokingResource) })
 		return
 	end
-	TriggerServerEvent("prison:server:SetJailStatus", time)
+	TriggerServerEvent("prison:server:SetJailStatus", time, inSolitary)
 	TriggerServerEvent("prison:server:SaveJailItems")
 	QBCore.Functions.Notify(Lang:t("error.injail", { Time = time }), "error")
-	setIntoPrison()
+
+	if inSolitary then
+		ensureSolitary()
+	else
+		setIntoPrison(0)
+	end
 end)
 
 RegisterNetEvent('prison:client:Leave', function()
