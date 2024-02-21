@@ -155,7 +155,7 @@ end)
 QBCore.Functions.CreateCallback('prison:server:checkTime', function(source, cb)
     local QPlayer = QBCore.Functions.GetPlayer(source)
     local outTime = QPlayer.PlayerData.metadata.jailOutTime and QPlayer.PlayerData.metadata.jailOutTime or 0
-    cb(math.ceil((outTime - os.time()) / 60), QPlayer.PlayerData.metadata.inSolitary)
+    cb(math.ceil((outTime - os.time()) / 60), QPlayer.PlayerData.metadata.inSolitary and QPlayer.PlayerData.metadata.inSolitary or 0)
 end)
 
 QBCore.Functions.CreateCallback('prison:server:getPrisoners', function(source, cb)
