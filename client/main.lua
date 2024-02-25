@@ -218,6 +218,7 @@ local function onLoad()
 		if not isPointInside and LocalPlayer.state.inJail then
 			removeBlips()
 			LocalPlayer.state:set('inJail', false, true)
+			LocalPlayer.state:set('onTheLam', true, true)
 			TriggerServerEvent("prison:server:SecurityLockdown")
 			exports['ps-dispatch']:PrisonBreak()
 			TriggerServerEvent('prison:server:JailAlarm')
